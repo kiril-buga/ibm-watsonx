@@ -1,0 +1,11 @@
+pymilvus
+llama_index
+pandas
+numpy
+langchain
+sentence_transformers
+dotenv
+wikipedia
+requests
+docling
+langchain_docling
