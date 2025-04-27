@@ -9,3 +9,4 @@ wikipedia
 requests
 docling
 langchain_docling
+ibm_watsonx_ai
