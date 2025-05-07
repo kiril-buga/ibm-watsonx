@@ -4,6 +4,9 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from dotenv import load_dotenv
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 password = os.environ.get("MILVUS_PASSWORD")
 user = os.environ.get("MILVUS_USER", "ibmlhapikey")
@@ -75,12 +78,12 @@ def compare_definitions():
         data = request.json
         query = data["query"]
         collection_name = data["collection_name"]
-        output_fields = data.get("output_fields", ["text"])
+        output_fields = data.get("output_fields")
         vector_field = data.get("vector_field", "vector")
         product_name = data["product_name"]
-        topic_field = data.get("topic_field", None)
-        topic_value = data.get("topic_value", None)
-        years = data["years"]  # e.g. [2014, 2023]
+        topic_field = data.get("topic_field", None) #--> "chapter" for example
+        topic_value = data.get("topic_value", None) # --> "a specific chapter name"
+        years = data["years"]  # e.g. [2014, 2023] --> possibility of comparing more than two years...
         top_k = data.get("top_k", 3)
 
         load_dotenv()
@@ -100,9 +103,8 @@ def compare_definitions():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 def compare_definitions_by_year(query, collection_name, vector_field, output_fields, product_name, topic_field,
-                                topic_value, years, top_k=3):
+                                topic_value, years, top_k=10):
     """
     Perform two filtered searches (one per year) in Milvus and format the results for comparison.
 
@@ -120,7 +122,6 @@ def compare_definitions_by_year(query, collection_name, vector_field, output_fie
     results = {}
     collection = Collection(collection_name)
     query_vector = embed(query)
-
     for year in years:
         filter_parts = [f'product_year == {year}', f'product_name == "{product_name}"']
         if topic_field and topic_value:
