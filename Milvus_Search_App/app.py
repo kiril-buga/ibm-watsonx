@@ -145,7 +145,6 @@ def compare_definitions_by_year(query, collection_name, vector_field, output_fie
                 text_chunks.append(chunk_text)
             # capture metadata once
             if not metadata_fields:
-                print("it goes here...")
                 for key in ["product_name", "product_year", "file_name"]:
                     value = hit.entity.get(key)
                     if value is not None:
