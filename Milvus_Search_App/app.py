@@ -11,8 +11,15 @@ user = os.environ.get("MILVUS_USER", "ibmlhapikey")
 app = Flask(__name__)
 
 model_name = "intfloat/multilingual-e5-large"
+print("🔄 Loading embedding model...")
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name)
+print("✅ Model loaded.")
+
+@app.route("/ping", methods=["GET"])
+def ping():
+    embed("warmup")  # silently loads everything into memory
+    return "Warmed up", 200
 
 def embed(text):
     input_text = f"query: {text}"
@@ -61,6 +68,96 @@ def search():
         return jsonify({"results": output})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/compare", methods=["POST"])
+def compare_definitions():
+    try:
+        data = request.json
+        query = data["query"]
+        collection_name = data["collection_name"]
+        output_fields = data.get("output_fields", ["text"])
+        vector_field = data.get("vector_field", "vector")
+        product_name = data["product_name"]
+        topic_field = data.get("topic_field", None)
+        topic_value = data.get("topic_value", None)
+        years = data["years"]  # e.g. [2014, 2023]
+        top_k = data.get("top_k", 3)
+
+        load_dotenv()
+
+        connections.connect(
+            host="102092af-5474-4a42-8dc2-35bb05ffdd0e.cvgfjtof0l91rq0joaj0.lakehouse.appdomain.cloud",
+            port="31574",
+            user=os.environ.get("MILVUS_USER"),
+            password=os.environ.get("MILVUS_PASSWORD"),
+            secure=True
+        )
+
+        response = compare_definitions_by_year(query, collection_name, vector_field, output_fields, product_name,
+                                               topic_field, topic_value, years, top_k)
+        return jsonify(response)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def compare_definitions_by_year(query, collection_name, vector_field, output_fields, product_name, topic_field,
+                                topic_value, years, top_k=3):
+    """
+    Perform two filtered searches (one per year) in Milvus and format the results for comparison.
+
+    Args:
+        query: User query string
+        collection_name: Name of Milvus collection
+        vector_field: Name of the vector field in Milvus
+        output_fields: List of non-vector fields to return --> list
+        product_name: Filter product name (e.g. 'Absicherungsplan') --> string
+        topic_field: Optional metadata field like 'chapter' --> string
+        topic_value: Optional topic or section to narrow scope
+        years: List of two years [year1, year2]
+        top_k: How many top results to return per year
+    """
+    results = {}
+    collection = Collection(collection_name)
+    query_vector = embed(query)
+
+    for year in years:
+        filter_parts = [f'product_year == {year}', f'product_name == "{product_name}"']
+        if topic_field and topic_value:
+            filter_parts.append(f'{topic_field} == "{topic_value}"')
+        filter_expr = " && ".join(filter_parts)
+
+        search_result = collection.search(
+            data=[query_vector],
+            anns_field=vector_field,
+            param={"metric_type": "COSINE", "params": {"nprobe": 10}},
+            limit=top_k,
+            expr=filter_expr,
+            output_fields=output_fields
+        )
+
+        # Format and concatenate chunks
+        text_chunks = []
+        metadata_fields = {}
+        for hit in search_result[0]:
+            chunk_text = hit.entity.get("text", "").strip()
+            if chunk_text:
+                text_chunks.append(chunk_text)
+            # capture metadata once
+            if not metadata_fields:
+                print("it goes here...")
+                for key in ["product_name", "product_year", "file_name"]:
+                    value = hit.entity.get(key)
+                    if value is not None:
+                        metadata_fields[key] = value
+
+        results[f"context_{year}"] = "\n---\n".join(text_chunks)
+        results[f"metadata_{year}"] = metadata_fields
+
+    return {
+            "context": results
+    }
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
