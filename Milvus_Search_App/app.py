@@ -55,7 +55,7 @@ def search():
         emb_query = embed(query)
         collection = Collection(collection_name)
         #collection.load()
-        print(collection.num_entities, flush=True)
+        #print(collection.num_entities, flush=True)
 
         results = collection.search(
             data=[emb_query],
@@ -108,11 +108,19 @@ def compare_definitions():
 def debug_latest_policy():
     date_str = request.args.get("date", "04.2015")
     product_name = request.args.get("product_name", "Absicherungsplan")
+    connections.connect(
+        host="102092af-5474-4a42-8dc2-35bb05ffdd0e.cvgfjtof0l91rq0joaj0.lakehouse.appdomain.cloud",
+        port="31574",
+        user=os.environ.get("MILVUS_USER"),
+        password=os.environ.get("MILVUS_PASSWORD"),
+        secure=True
+    )
 
-    collection_name = Collection("your_collection")
+    collection_name = Collection("docling_helvetia")
     collection_name.load()
 
     result = find_most_recent_policy_before(date_str, collection_name, product_name)
+    result["original_date"] = date_str
     return jsonify(result or {"error": "No match"})
 
 def find_most_recent_policy_before(user_date_str, collection, product_name):
