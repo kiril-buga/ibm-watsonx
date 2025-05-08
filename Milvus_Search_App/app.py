@@ -5,6 +5,7 @@ import torch
 from dotenv import load_dotenv
 import os
 import logging
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -103,6 +104,48 @@ def compare_definitions():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/debug/latest_policy", methods=["GET"])
+def debug_latest_policy():
+    date_str = request.args.get("date", "04.2015")
+    product_name = request.args.get("product_name", "Absicherungsplan")
+
+    collection_name = Collection("your_collection")
+    collection_name.load()
+
+    result = find_most_recent_policy_before(date_str, collection_name, product_name)
+    return jsonify(result or {"error": "No match"})
+
+def find_most_recent_policy_before(user_date_str, collection, product_name):
+    user_date = datetime.strptime(user_date_str, "%m.%Y")
+
+    # Get all versions for this product
+    docs = collection.query(
+        expr=f'product_name == "{product_name}"',
+        output_fields=["product_year", "product_month"]
+    )
+
+    # Extract all policy dates
+    valid_versions = []
+    for d in docs:
+        try:
+            y = int(d["product_year"])
+            m = int(d["product_month"])
+            doc_date = datetime(y, m, 1)
+            if doc_date <= user_date:
+                valid_versions.append((doc_date, y, m))
+        except:
+            continue  # skip bad records
+
+    if not valid_versions:
+        return None  # no applicable policy found
+
+    # Sort and return the latest one before user date
+    valid_versions.sort(reverse=True)
+    _, best_year, best_month = valid_versions[0]
+    return {"product_year": best_year, "product_month": best_month}
+
+
+
 def compare_definitions_by_year(query, collection_name, vector_field, output_fields, product_name, topic_field,
                                 topic_value, years, top_k=10):
     """
@@ -157,6 +200,7 @@ def compare_definitions_by_year(query, collection_name, vector_field, output_fie
     return {
             "context": results
     }
+
 
 
 if __name__ == "__main__":
