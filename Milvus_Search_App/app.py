@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import os
 import logging
 from datetime import datetime
+from difflib import unified_diff
 
 logging.basicConfig(level=logging.INFO)
 
@@ -103,6 +104,74 @@ def compare_definitions():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# used to compare two policies with the same product name but different dates (e.g. 2014 vs 2023)
+# it searches for the most recent policy before the given date and compares it to the query
+@app.route("/compare_by_date", methods=["POST"])
+def compare_by_date():
+    try:
+        data = request.json
+        query = data["query"]
+        collection_name = data["collection_name"]
+        product_name = data["product_name"]
+        dates = data["dates"]
+        output_fields = data.get("output_fields", ["text", "file_name", "product_year", "product_month"])
+        vector_field = data.get("vector_field", "vector")
+        top_k = data.get("top_k", 3)
+
+        load_dotenv()
+
+        connections.connect(
+            host="102092af-5474-4a42-8dc2-35bb05ffdd0e.cvgfjtof0l91rq0joaj0.lakehouse.appdomain.cloud",
+            port="31574",
+            user=os.environ.get("MILVUS_USER"),
+            password=os.environ.get("MILVUS_PASSWORD"),
+            secure=True
+        )
+
+        collection = Collection(collection_name)
+        query_vector = embed(query)
+        results = {}
+
+        for date_str in dates:
+            version_info = find_most_recent_policy_before(date_str, collection, product_name)
+            if not version_info:
+                results[f"context_{date_str}"] = "No matching version found"
+                results[f"title_{date_str}"] = "N/A"
+                continue
+
+            year = version_info["product_year"]
+            month = version_info["product_month"]
+
+            filter_expr = f'product_year == {year} && product_month == {month} && product_name == "{product_name}"'
+
+            search_result = collection.search(
+                data=[query_vector],
+                anns_field=vector_field,
+                param={"metric_type": "COSINE", "params": {"nprobe": 10}},
+                limit=top_k,
+                expr=filter_expr,
+                output_fields=output_fields
+            )
+
+            chunks = []
+            file_title = None
+            for hit in search_result[0]:
+                txt = hit.entity.get("text", "").strip()
+                if txt:
+                    chunks.append(txt)
+                if not file_title:
+                    file_title = hit.entity.get("file_name", f"{year}_{month:02d}")
+
+            label = f"{year}_{month:02d}"
+            results[f"context_{label}"] = "\n---\n".join(chunks)
+            results[f"title_{label}"] = file_title or "Unknown"
+
+        return jsonify({"comparison": results})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/debug/latest_policy", methods=["GET"])
 def debug_latest_policy():
@@ -208,8 +277,6 @@ def compare_definitions_by_year(query, collection_name, vector_field, output_fie
     return {
             "context": results
     }
-
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
