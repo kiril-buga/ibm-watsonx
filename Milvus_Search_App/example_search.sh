@@ -3,8 +3,10 @@ curl -X POST http://127.0.0.1:5000/search \
   -d '{
     "query": "Wie wird ein Umfall definiert?",
     "collection_name": "docling_helvetia",
+    "product_date": "5.2019",
+    "product_name" : "Absicherungsplan",
     "filter": "product_name == \"Absicherungsplan\" && product_year == 2019",
-    "output_fields": ["company_entity", "product_name", "product_year", "chapter", "file_name", "page_number","text"],
+    "output_fields": ["company_entity", "product_name", "product_year", "product_month", "chapter", "file_name", "page_number","text"],
     "top_k": 5
 
   }'

@@ -34,13 +34,37 @@ def embed(text):
 
 @app.route("/search", methods=["POST"])
 def search():
+    """
+    This route performs a search in Milvus based on the provided query and creates a filter based on the user's input (Product name + product year)
+    Takes as Input:
+    {
+    "query": str,
+    "collection_name": "docling_helvetia",
+    "product_date": "XX.XXXX",
+    "product_name" : "str,
+    "output_fields": ["company_entity", "product_name", "product_year", "product_month", "chapter", "file_name", "page_number","text"],
+    "top_k": 5 -> default
+
+  }'
+
+    Returns:
+        A dictionary containing the search results as a list of dictionaries with the following keys:
+        "file_name": str,
+        "id": int,
+        "product_name": str,
+        "product_year": int,
+        "score": float,
+        "text": str
+    """
     try:
         data = request.json
         query = data["query"]
         collection_name = data["collection_name"]
         output_fields = data["output_fields"]
-        filter_expr = data["filter"]
+        #filter_expr = data["filter"]
         top_k = data["top_k"]
+        date = data["product_date"]
+        product_name = data["product_name"]
 
         load_dotenv()
 
@@ -56,6 +80,17 @@ def search():
         collection = Collection(collection_name)
         #collection.load()
         #print(collection.num_entities, flush=True)
+        best_results = {}
+
+        result = find_most_recent_policy_before(date, collection, product_name)
+        logging.info(result)
+        if result:  # check if result is not None or empty
+            best_results[date] = result
+
+        filter_parts = [f'product_year == {best_results[date]["product_year"]}',
+                        f'product_month == {best_results[date]["product_month"]}', f'product_name == "{product_name}"']
+
+        filter_expr = " && ".join(filter_parts)
 
         results = collection.search(
             data=[emb_query],
@@ -84,7 +119,7 @@ def compare_definitions():
         product_name = data["product_name"]
         topic_field = data.get("topic_field", None) #--> "chapter" for example
         topic_value = data.get("topic_value", None) # --> "a specific chapter name"
-        years = data["years"]  # e.g. [2014, 2023] --> possibility of comparing more than two years...
+        years = data["years"]  # e.g. ["10.2014", "10.2023"] --> possibility of comparing more than two years...
         top_k = data.get("top_k", 3)
 
         load_dotenv()
@@ -97,8 +132,18 @@ def compare_definitions():
             secure=True
         )
 
+        collection_name = Collection(collection_name)
+        collection_name.load()
+
+        best_results = {}
+        for year in years:
+            result = find_most_recent_policy_before(year, collection_name, product_name)
+            logging.info(result)
+            if result:  # check if result is not None or empty
+                best_results[year] = result
+
         response = compare_definitions_by_year(query, collection_name, vector_field, output_fields, product_name,
-                                               topic_field, topic_value, years, top_k)
+                                               topic_field, topic_value, years, best_results, top_k)
         return jsonify(response)
 
     except Exception as e:
@@ -116,10 +161,10 @@ def debug_latest_policy():
         secure=True
     )
 
-    collection_name = Collection("docling_helvetia")
-    collection_name.load()
+    collection = Collection("docling_helvetia")
+    collection.load()
 
-    result = find_most_recent_policy_before(date_str, collection_name, product_name)
+    result = find_most_recent_policy_before(date_str, collection, product_name)
     result["original_date"] = date_str
     return jsonify(result or {"error": "No match"})
 
@@ -153,9 +198,8 @@ def find_most_recent_policy_before(user_date_str, collection, product_name):
     return {"product_year": best_year, "product_month": best_month}
 
 
-
-def compare_definitions_by_year(query, collection_name, vector_field, output_fields, product_name, topic_field,
-                                topic_value, years, top_k=10):
+def compare_definitions_by_year(query, collection, vector_field, output_fields, product_name, topic_field,
+                                topic_value, years, best_results, top_k=10):
     """
     Perform two filtered searches (one per year) in Milvus and format the results for comparison.
 
@@ -171,10 +215,11 @@ def compare_definitions_by_year(query, collection_name, vector_field, output_fie
         top_k: How many top results to return per year
     """
     results = {}
-    collection = Collection(collection_name)
+    #collection = Collection(collection_name)
     query_vector = embed(query)
     for year in years:
-        filter_parts = [f'product_year == {year}', f'product_name == "{product_name}"']
+        logging.info(best_results[year])
+        filter_parts = [f'product_year == {best_results[year]["product_year"]}',f'product_month == {best_results[year]["product_month"]}', f'product_name == "{product_name}"']
         if topic_field and topic_value:
             filter_parts.append(f'{topic_field} == "{topic_value}"')
         filter_expr = " && ".join(filter_parts)
@@ -197,12 +242,12 @@ def compare_definitions_by_year(query, collection_name, vector_field, output_fie
                 text_chunks.append(chunk_text)
             # capture metadata once
             if not metadata_fields:
-                for key in ["product_name", "product_year", "file_name"]:
+                for key in ["product_name", "product_year", "product_month", "file_name"]:
                     value = hit.entity.get(key)
                     if value is not None:
                         metadata_fields[key] = value
 
-        results[f"context_{year}"] = "\n---\n".join(text_chunks)
+        results[f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']}"] = "\n---\n".join(text_chunks)
         results[f"metadata_{year}"] = metadata_fields
 
     return {
