@@ -1,0 +1,226 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Milvus Search App API",
+    "version": "1.0.0",
+    "description": "API for performing search and comparison operations using Milvus."
+  },
+  "servers": [
+    {
+      "url": "https://milvus-server-helvetia.1vclh02s8xqt.eu-de.codeengine.appdomain.cloud",
+      "description": "ibm code engine server"
+    }
+  ],
+  "paths": {
+    "/ping": {
+      "get": {
+        "summary": "Ping the server",
+        "description": "Checks if the server is running and warms up the embedding model.",
+        "responses": {
+          "200": {
+            "description": "Server is warmed up."
+          },
+          "500": {
+            "description": "Error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "post": {
+        "summary": "Search in Milvus",
+        "description": "Performs a search in Milvus based on the provided query and filters.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": { "type": "string" },
+                  "collection_name": { "type": "string" },
+                  "product_date": { "type": "string", "example": "XX.XXXX", "description": "Date in MM.YYYY format."},
+                  "product_name": { "type": "string" },
+                  "output_fields": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "top_k": { "type": "integer", "default": 5 }
+                },
+                "required": ["query", "collection_name", "product_date", "product_name", "output_fields"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "score": { "type": "number" },
+                          "text": { "type": "string" },
+                          "file_name": { "type": "string" },
+                          "product_year": { "type": "integer" },
+                          "product_name": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compare": {
+      "post": {
+        "summary": "Compare definitions",
+        "description": "Compares definitions across multiple years in Milvus.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": { "type": "string" },
+                  "collection_name": { "type": "string" },
+                  "output_fields": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "vector_field": { "type": "string", "default": "vector" },
+                  "product_name": { "type": "string" },
+                  "topic_field": { "type": "string" },
+                  "topic_value": { "type": "string" },
+                  "years": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "top_k": { "type": "integer", "default": 3 }
+                },
+                "required": ["query", "collection_name", "product_name", "years"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comparison results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "context": {
+                      "type": "object",
+                      "additionalProperties": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debug/latest_policy": {
+      "get": {
+        "summary": "Get latest policy",
+        "description": "Fetches the most recent policy before a given date for a specific product.",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "example": "04.2015" },
+            "description": "Date in MM.YYYY format."
+          },
+          {
+            "name": "product_name",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "example": "Absicherungsplan" },
+            "description": "Name of the product."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest policy details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "product_year": { "type": "integer" },
+                    "product_month": { "type": "integer" },
+                    "original_date": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

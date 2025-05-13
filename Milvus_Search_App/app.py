@@ -20,6 +20,10 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name)
 print("✅ Model loaded.")
 
+@app.route("/hello", methods=["GET"])
+def hello():
+    return "Hello, World!", 200
+
 @app.route("/ping", methods=["GET"])
 def ping():
     embed("warmup")  # silently loads everything into memory
@@ -257,5 +261,5 @@ def compare_definitions_by_year(query, collection, vector_field, output_fields, 
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
 
