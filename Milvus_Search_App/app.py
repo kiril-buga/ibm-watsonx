@@ -317,8 +317,7 @@ def summarize_policy():
             if text:
                 texts.append(text)
 
-        # Generate summary of all retrieved texts
-        #summary = generate_summary(texts)
+        # Generate summary
         summary = summarize_with_embeddings(query, texts, top_k=3)
 
         return jsonify({"summary": summary})
@@ -326,17 +325,11 @@ def summarize_policy():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-def generate_summary(texts):
-    combined_text = "\n\n".join(texts)
-    summary = combined_text[:500] + "..." if len(combined_text) > 500 else combined_text
-    return summary
-
 def summarize_with_embeddings(query, texts, top_k=3):
     """
     Summarize texts by embedding and picking top_k most relevant chunks to the query.
     """
-    query_emb = embed(query)  # Your embedding function returns a list
+    query_emb = embed(query)
 
     # Embed each text chunk
     text_embs = [embed(t) for t in texts]
@@ -357,7 +350,6 @@ def summarize_with_embeddings(query, texts, top_k=3):
     # Join chunks as summary
     summary = "\n\n".join(top_chunks)
     return summary
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
