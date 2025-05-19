@@ -1,0 +1,121 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Document Comparison Extension",
+    "version": "1.0.0",
+    "description": "Custom extension for comparing document versions using IBM Watsonx.ai prompt template"
+  },
+  "servers": [
+    {
+      "url": "https://eu-de.ml.cloud.ibm.com/ml/v1/deployments/57477dcc-0600-4d51-a207-9de5ccce2fed/text/generation?version=2021-05-01",
+      "description": "Custom extension that wraps Watsonx.ai deployment"
+    }
+  ],
+  "paths": {
+    "/compare-documents": {
+      "post": {
+        "summary": "Compare documents across two years",
+   "security": [
+    {
+      "oauth2": []
+    }
+  ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "prompt_variables": {
+                        "type": "object",
+                        "properties": {
+                          "context_year1": { "type": "string" },
+                          "context_year2": { "type": "string" },
+                          "year_1": { "type": "string" },
+                          "year_2": { "type": "string" },
+                          "product_name": { "type": "string" },
+                          "user_query": { "type": "string" },
+                          "file_name_1": { "type": "string" },
+                          "file_name_2": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful document comparison",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model_id": { "type": "string" },
+                    "model_version": { "type": "string" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "generated_text": { "type": "string" },
+                          "generated_token_count": { "type": "integer" },
+                          "input_token_count": { "type": "integer" },
+                          "stop_reason": { "type": "string" }
+                        }
+                      }
+                    },
+                    "system": {
+                      "type": "object",
+                      "properties": {
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "message": { "type": "string" },
+                              "id": { "type": "string" },
+                              "more_info": { "type": "string", "format": "uri" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    }
+  },
+    "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "x-apikey": {
+            "tokenUrl": "https://iam.cloud.ibm.com/identity/token",
+            "grantType": "urn:ibm:params:oauth:grant-type:apikey",
+            "secretKeys": [
+              "apikey"
+            ],
+            "paramKeys": [],
+            "scopes": {}
+          }
+        }
+      }
+    }
+  }
+}
