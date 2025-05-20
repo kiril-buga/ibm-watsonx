@@ -238,6 +238,7 @@ def compare_definitions_by_year(query, collection, vector_field, output_fields, 
         metadata_fields = {}
         for hit in search_result[0]:
             chunk_text = hit.entity.get("text", "").strip()
+            print(chunk_text)
             if chunk_text:
                 text_chunks.append(chunk_text)
             # capture metadata once
@@ -248,8 +249,8 @@ def compare_definitions_by_year(query, collection, vector_field, output_fields, 
                         metadata_fields[key] = value
         metadata_fields["orig_year"] = year
         metadata_fields["act_year"] = str(best_results[year]["product_month"]) + "." + str(best_results[year]["product_year"])
-        results[f"context_{idx}"] = "\n---\n".join(text_chunks) # OLD: f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']}
-        results[f"metadata_{idx}"] = metadata_fields # OLD: f"metadata_{year}"
+        results[f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']}"] = "\n---\n".join(text_chunks) # OLD: f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']} Alternative: f"context_{idx}"
+        results[f"metadata_{year}"] = metadata_fields # OLD: f"metadata_{year}" Alternative: f"metadata_{idx}"
 
     return {
             "context": results
