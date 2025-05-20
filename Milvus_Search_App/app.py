@@ -249,7 +249,7 @@ def compare_definitions_by_year(query, collection, vector_field, output_fields, 
                         metadata_fields[key] = value
         metadata_fields["orig_year"] = year
         metadata_fields["act_year"] = str(best_results[year]["product_month"]) + "." + str(best_results[year]["product_year"])
-        results[f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']}"] = "\n---\n".join(text_chunks) # OLD: f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']} Alternative: f"context_{idx}"
+        results[f"context_{year}"] = "\n---\n".join(text_chunks) # OLD: f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']} Alternative: f"context_{idx}"
         results[f"metadata_{year}"] = metadata_fields # OLD: f"metadata_{year}" Alternative: f"metadata_{idx}"
 
     return {
