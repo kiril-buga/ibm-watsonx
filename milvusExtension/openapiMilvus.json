@@ -49,23 +49,40 @@
                     "type": "string",
                     "description": "Name of the Milvus collection."
                   },
-                  "output_fields": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "List of fields to return in the search results."
-                  },
-                  "filter": {
+                  "vector_field": {
                     "type": "string",
-                    "description": "Filter expression for the search."
+                    "description": "Name of the vector field in Milvus to search against (default: \"vector\")."
+                  },
+                  "product_date": {
+                    "type": "string",
+                    "description": "MM.YYYY date to auto-select the most recent policy."
+                  },
+                  "product_name": {
+                    "type": "string",
+                    "description": "Name of the product to filter results."
+                  },
+                  "chapter": {
+                    "type": "string",
+                    "description": "Optional metadata field to filter sections."
+                  },
+                  "company_entity": {
+                    "type": "string",
+                    "description": "Optional company entity to filter results."
+                  },
+                  "any_field": {
+                    "type": "string",
+                    "description": "Additional field name for dynamic filtering."
+                  },
+                  "any_value": {
+                    "type": "string",
+                    "description": "Value corresponding to the additional filter field."
                   },
                   "top_k": {
                     "type": "integer",
                     "description": "Number of top results to return."
                   }
                 },
-                "required": ["query", "collection_name", "output_fields", "filter", "top_k"]
+                "required": ["query", "collection_name"]
               }
             }
           }
@@ -213,6 +230,83 @@
           },
           "500": {
             "description": "Error occurred.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_product_names": {
+      "get": {
+        "summary": "List unique product names",
+        "description": "Retrieve all unique product_name values from a Milvus collection. Can be optionally filtered by company_entity.",
+        "parameters": [
+          {
+            "name": "collection_name",
+            "in": "query",
+            "required": true,
+            "description": "Name of the Milvus collection.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "company_entity",
+            "in": "query",
+            "required": false,
+            "description": "Optional company entity to filter product names.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of unique product names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "product_names": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Sorted list of unique product names."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, e.g., collection_name is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
             "content": {
               "application/json": {
                 "schema": {

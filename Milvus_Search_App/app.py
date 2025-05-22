@@ -209,9 +209,39 @@ def compare_definitions():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/get_product_names", methods=["GET"])
 def get_product_names():
-    pass
+    """
+    Retrieve all unique product_name values from a Milvus collection.
+    Optional filter by company_entity query parameter.
+    """
+    try:
+        collection_name = request.args.get("collection_name")
+        company_entity = request.args.get("company_entity")
+
+        if not collection_name:
+            return jsonify({"error": "collection_name is required"}), 400
+
+        connections.connect(
+            host="102092af-5474-4a42-8dc2-35bb05ffdd0e.cvgfjtof0l91rq0joaj0.lakehouse.appdomain.cloud",
+            port="31574",
+            user=os.environ.get("MILVUS_USER"),
+            password=os.environ.get("MILVUS_PASSWORD"),
+            secure=True
+        )
+        coll = Collection(collection_name)
+        coll.load()
+        # build optional filter
+        expr = f'company_entity == "{company_entity}"' if company_entity else ""
+
+        # query product_name only
+        docs = coll.query(expr=expr, limit=16000, output_fields=["product_name"])
+        names = sorted({d.get("product_name") for d in docs if d.get("product_name")})
+        return jsonify({"product_names": names}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/debug/latest_policy", methods=["GET"])
 def debug_latest_policy():
@@ -244,6 +274,7 @@ def find_most_recent_policy_before(user_date_str, collection, product_name):
     logging.info(f"most_recent_policy_before {user_date} - filter_expr: {filter_expr} for product_name: {product_name}")
     docs = collection.query(
         expr=filter_expr,
+        limit=16000,
         output_fields=["product_year", "product_month"]
     )
 
@@ -285,11 +316,12 @@ def compare_definitions_by_year(query, collection, vector_field, output_fields, 
         top_k: How many top results to return per year
     """
     results = {}
-    #collection = Collection(collection_name)
+    # collection = Collection(collection_name)
     query_vector = embed(query)
     for idx, year in enumerate(years, 1):
         logging.info(best_results[year])
-        filter_parts = [f'product_year == {best_results[year]["product_year"]}',f'product_month == {best_results[year]["product_month"]}', f'product_name == "{product_name}"']
+        filter_parts = [f'product_year == {best_results[year]["product_year"]}',
+                        f'product_month == {best_results[year]["product_month"]}', f'product_name == "{product_name}"']
         if topic_field and topic_value:
             filter_parts.append(f'{topic_field} == "{topic_value}"')
         filter_expr = " && ".join(filter_parts)
@@ -313,21 +345,22 @@ def compare_definitions_by_year(query, collection, vector_field, output_fields, 
                 text_chunks.append(chunk_text)
             # capture metadata once
             if not metadata_fields:
-                for key in ["product_name", "file_name"]: # FOR ADDITIONAL META FIELDS: ["product_name", "product_year", "product_month", "file_name"]
+                for key in ["product_name",
+                            "file_name"]:  # FOR ADDITIONAL META FIELDS: ["product_name", "product_year", "product_month", "file_name"]
                     value = hit.entity.get(key)
                     if value is not None:
                         metadata_fields[key] = value
         metadata_fields["orig_year"] = year
-        metadata_fields["act_year"] = str(best_results[year]["product_month"]) + "." + str(best_results[year]["product_year"])
-        results[f"context_{year}"] = "\n---\n".join(text_chunks) # OLD: f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']} Alternative: f"context_{idx}"
-        results[f"metadata_{year}"] = metadata_fields # OLD: f"metadata_{year}" Alternative: f"metadata_{idx}"
+        metadata_fields["act_year"] = str(best_results[year]["product_month"]) + "." + str(
+            best_results[year]["product_year"])
+        results[f"context_{year}"] = "\n---\n".join(
+            text_chunks)  # OLD: f"context_{best_results[year]['product_month']}.{best_results[year]['product_year']} Alternative: f"context_{idx}"
+        results[f"metadata_{year}"] = metadata_fields  # OLD: f"metadata_{year}" Alternative: f"metadata_{idx}"
 
     return {
-            "context": results
+        "context": results
     }
-
 
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
