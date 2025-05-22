@@ -1,0 +1,32 @@
+### Warm up
+GET http://127.0.0.1:5000/ping
+
+### Compare
+POST http://127.0.0.1:5000/compare 
+Content-Type: application/json
+
+{
+  "query": "Wie wird der Umwandlungswert berechnet?",
+  "collection_name": "docling_helvetia",
+  "product_name": "Absicherungsplan",
+  "years": ["10.2019", "12.2023"],
+  "output_fields": ["text", "product_name", "product_year", "product_month", "file_name", "chapter", "page_number"],
+  "vector_field": "vector",
+  "top_k": 5
+}
+
+
+### Search
+POST http://127.0.0.1:5000/search
+Content-Type: application/json
+
+{
+  "query": "Wie wird ein Unfall definiert?",
+  "collection_name": "docling_helvetia",
+  "product_date": "5.2019",
+  "product_name": "Absicherungsplan",
+  "top_k": 12
+}
+
+### List product names
+GET http://127.0.0.1:5000/get_product_names?collection_name=docling_helvetia
