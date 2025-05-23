@@ -43,7 +43,7 @@
                 "properties": {
                   "query": {
                     "type": "string",
-                    "description": "The search query string."
+                    "description": "Search query string."
                   },
                   "collection_name": {
                     "type": "string",
@@ -51,35 +51,37 @@
                   },
                   "vector_field": {
                     "type": "string",
-                    "description": "Name of the vector field in Milvus to search against (default: \"vector\")."
-                  },
-                  "product_date": {
-                    "type": "string",
-                    "description": "MM.YYYY date to auto-select the most recent policy."
-                  },
-                  "product_name": {
-                    "type": "string",
-                    "description": "Name of the product to filter results."
-                  },
-                  "chapter": {
-                    "type": "string",
-                    "description": "Optional metadata field to filter sections."
-                  },
-                  "company_entity": {
-                    "type": "string",
-                    "description": "Optional company entity to filter results."
-                  },
-                  "any_field": {
-                    "type": "string",
-                    "description": "Additional field name for dynamic filtering."
-                  },
-                  "any_value": {
-                    "type": "string",
-                    "description": "Value corresponding to the additional filter field."
+                    "description": "Name of the vector field in the collection.",
+                    "default": "vector"
                   },
                   "top_k": {
                     "type": "integer",
-                    "description": "Number of top results to return."
+                    "description": "Number of top results to return.",
+                    "default": 12
+                  },
+                  "product_date": {
+                    "type": "string",
+                    "description": "Product date filter in MM.YYYY format."
+                  },
+                  "product_name": {
+                    "type": "string",
+                    "description": "Product name to filter results."
+                  },
+                  "chapter": {
+                    "type": "string",
+                    "description": "Chapter to filter results."
+                  },
+                  "company_entity": {
+                    "type": "string",
+                    "description": "Company entity to filter results."
+                  },
+                  "any_field": {
+                    "type": "string",
+                    "description": "Any metadata field to filter by."
+                  },
+                  "any_value": {
+                    "type": "string",
+                    "description": "Value for the any_field filter."
                   }
                 },
                 "required": ["query", "collection_name"]
@@ -101,7 +103,7 @@
                         "type": "object",
                         "properties": {
                           "id": {
-                            "type": "string",
+                            "type": "integer",
                             "description": "ID of the result."
                           },
                           "score": {
@@ -116,13 +118,29 @@
                             "type": "string",
                             "description": "File name of the result."
                           },
+                          "product_name": {
+                            "type": "string",
+                            "description": "Product name of the result."
+                          },
                           "product_year": {
                             "type": "integer",
                             "description": "Product year of the result."
                           },
-                          "product_name": {
+                          "product_month": {
+                            "type": "integer",
+                            "description": "Product month of the result."
+                          },
+                          "chapter": {
                             "type": "string",
-                            "description": "Product name of the result."
+                            "description": "Chapter of the result."
+                          },
+                          "page_number": {
+                            "type": "integer",
+                            "description": "Page number of the result."
+                          },
+                          "company_entity": {
+                            "type": "string",
+                            "description": "Company entity of the result."
                           }
                         }
                       }
@@ -248,31 +266,11 @@
     },
     "/get_product_names": {
       "get": {
-        "summary": "List unique product names",
-        "description": "Retrieve all unique product_name values from a Milvus collection. Can be optionally filtered by company_entity.",
-        "parameters": [
-          {
-            "name": "collection_name",
-            "in": "query",
-            "required": true,
-            "description": "Name of the Milvus collection.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "company_entity",
-            "in": "query",
-            "required": false,
-            "description": "Optional company entity to filter product names.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "summary": "Get product names",
+        "description": "Retrieve a list of available product names from the collection.",
         "responses": {
           "200": {
-            "description": "A list of unique product names.",
+            "description": "List of product names.",
             "content": {
               "application/json": {
                 "schema": {
@@ -282,23 +280,7 @@
                       "type": "array",
                       "items": {
                         "type": "string"
-                      },
-                      "description": "Sorted list of unique product names."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request, e.g., collection_name is missing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
+                      }
                     }
                   }
                 }
@@ -306,7 +288,7 @@
             }
           },
           "500": {
-            "description": "Internal server error.",
+            "description": "Error occurred.",
             "content": {
               "application/json": {
                 "schema": {
