@@ -12,6 +12,11 @@
     }
   ],
   "paths": {
+    "security": [
+      {
+        "oauth2": []
+      }
+    ],
     "/ping": {
       "get": {
         "summary": "Health check endpoint",
@@ -84,7 +89,10 @@
                     "description": "Value for the any_field filter."
                   }
                 },
-                "required": ["query", "collection_name"]
+                "required": [
+                  "query",
+                  "collection_name"
+                ]
               }
             }
           }
@@ -222,7 +230,12 @@
                     "description": "Number of top results to return per year."
                   }
                 },
-                "required": ["query", "collection_name", "product_name", "years"]
+                "required": [
+                  "query",
+                  "collection_name",
+                  "product_name",
+                  "years"
+                ]
               }
             }
           }
@@ -367,6 +380,24 @@
                 }
               }
             }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "x-apikey": {
+            "tokenUrl": "https://iam.cloud.ibm.com/identity/token",
+            "grantType": "urn:ibm:params:oauth:grant-type:apikey",
+            "secretKeys": [
+              "apikey"
+            ],
+            "paramKeys": [],
+            "scopes": {}
           }
         }
       }
