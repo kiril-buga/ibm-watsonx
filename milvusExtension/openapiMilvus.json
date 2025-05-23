@@ -11,12 +11,10 @@
       "description": "ibm code engine server"
     }
   ],
+  "security": [
+    { "apikeyAuth": [] }
+  ],
   "paths": {
-    "security": [
-      {
-        "oauth2": []
-      }
-    ],
     "/ping": {
       "get": {
         "summary": "Health check endpoint",
