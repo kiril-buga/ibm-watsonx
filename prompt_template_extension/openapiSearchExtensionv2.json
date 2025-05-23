@@ -6,34 +6,12 @@
     "description": "Combines document‐search prompts with Milvus vector search."
   },
   "servers": [
+     { "url": "https://eu-de.ml.cloud.ibm.com/ml/v1/deployments/c172f0c7-3c1a-4056-b2ea-b6de144ea2dd/text/generation_stream?version=2021-05-01" }
 
   ],
   "paths": {
-    "/compare-documents": {
-      "post": {
-        "servers": [ { "url": "https://eu-de.ml.cloud.ibm.com/ml/v1/deployments/57477dcc-0600-4d51-a207-9de5ccce2fed/text/generation?version=2021-05-01" } ],
-        "summary": "Compare documents across two years",
-        "security": [
-          { "oauth2": [] }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { 
-              "schema": { "type": "object" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Successful comparison result" },
-          "400": { "description": "Invalid request" },
-          "500": { "description": "Internal server error" }
-        }
-      }
-    },
     "/search": {
       "post": {
-        "servers": [ { "url": "https://eu-de.ml.cloud.ibm.com/ml/v1/deployments/c172f0c7-3c1a-4056-b2ea-b6de144ea2dd/text/generation_stream?version=2021-05-01" } ],
         "summary": "Query Milvus collection",
         "description": "Perform a semantic search on a Milvus collection using embeddings.",
         "requestBody": {
