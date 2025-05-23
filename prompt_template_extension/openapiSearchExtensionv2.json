@@ -1,0 +1,114 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Document Search & Comparison Extension",
+    "version": "1.0.0",
+    "description": "Combines document‐search prompts with Milvus vector search."
+  },
+  "servers": [
+
+  ],
+  "paths": {
+    "/compare-documents": {
+      "post": {
+        "servers": [ { "url": "https://eu-de.ml.cloud.ibm.com/ml/v1/deployments/57477dcc-0600-4d51-a207-9de5ccce2fed/text/generation?version=2021-05-01" } ],
+        "summary": "Compare documents across two years",
+        "security": [
+          { "oauth2": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { 
+              "schema": { "type": "object" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful comparison result" },
+          "400": { "description": "Invalid request" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/search": {
+      "post": {
+        "servers": [ { "url": "https://eu-de.ml.cloud.ibm.com/ml/v1/deployments/c172f0c7-3c1a-4056-b2ea-b6de144ea2dd/text/generation_stream?version=2021-05-01" } ],
+        "summary": "Query Milvus collection",
+        "description": "Perform a semantic search on a Milvus collection using embeddings.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query":           { "type": "string" },
+                  "collection_name": { "type": "string" },
+                  "vector_field":    { "type": "string" },
+                  "top_k":           { "type": "integer" },
+                  "product_date":    { "type": "string" },
+                  "product_name":    { "type": "string" },
+                  "chapter":         { "type": "string" },
+                  "company_entity":  { "type": "string" },
+                  "any_field":       { "type": "string" },
+                  "any_value":       { "type": "string" }
+                },
+                "required": ["query","collection_name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id":             { "type": "integer" },
+                          "score":          { "type": "number" },
+                          "text":           { "type": "string" },
+                          "file_name":      { "type": "string" },
+                          "product_name":   { "type": "string" },
+                          "product_year":   { "type": "integer" },
+                          "product_month":  { "type": "integer" },
+                          "chapter":        { "type": "string" },
+                          "page_number":    { "type": "integer" },
+                          "company_entity": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "x-apikey": {
+            "tokenUrl":    "https://iam.cloud.ibm.com/identity/token",
+            "grantType":   "urn:ibm:params:oauth:grant-type:apikey",
+            "secretKeys":  ["apikey"],
+            "paramKeys":   [],
+            "scopes":      {}
+          }
+        }
+      }
+    }
+  }
+}
