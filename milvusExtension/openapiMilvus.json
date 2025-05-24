@@ -54,8 +54,7 @@
                   },
                   "vector_field": {
                     "type": "string",
-                    "description": "Name of the vector field in the collection.",
-                    "default": "vector"
+                    "description": "Name of the vector field in the collection."
                   },
                   "top_k": {
                     "type": "integer",
@@ -378,24 +377,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "securitySchemes": {
-      "oauth2": {
-        "type": "oauth2",
-        "flows": {
-          "x-apikey": {
-            "tokenUrl": "https://iam.cloud.ibm.com/identity/token",
-            "grantType": "urn:ibm:params:oauth:grant-type:apikey",
-            "secretKeys": [
-              "apikey"
-            ],
-            "paramKeys": [],
-            "scopes": {}
           }
         }
       }

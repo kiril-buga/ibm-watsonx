@@ -66,7 +66,7 @@ def search():
         query = data["query"]
         collection_name = data["collection_name"]
         output_fields = ["text", "metadata", "page_number", "file_name", "product_name", "product_month",
-                         "product_year", "chapter", "company_entity", "vector_field"]
+                         "product_year", "chapter", "company_entity"]
         vector_field = data.get("vector_field", "vector")
         top_k = data.get("top_k", 12)
         # years = data.get("years", None)  # e.g. ["10.2014", "10.2023"] --> possibility of comparing more than two years...
