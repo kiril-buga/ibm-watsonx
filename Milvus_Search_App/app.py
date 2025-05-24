@@ -26,20 +26,6 @@ load_dotenv()
 def hello():
     return "Hello, World!", 200
 
-@app.route("/ping", methods=["GET"])
-def ping():
-    embed("warmup")  # silently loads everything into memory
-    return "Warmed up", 200
-
-
-def embed(text):
-    input_text = f"query: {text}"
-    inputs = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True)
-    with torch.no_grad():
-        embeddings = model(**inputs).last_hidden_state[:, 0]
-    return embeddings[0].tolist()
-
-
 @app.route("/search", methods=["POST"])
 def search():
     """
@@ -69,7 +55,7 @@ def search():
         query = data["query"]
         collection_name = data["collection_name"]
         output_fields = ["text", "metadata", "page_number", "file_name", "product_name", "product_month",
-                         "product_year", "chapter", "company_entity", "vector_field"]
+                         "product_year", "chapter", "company_entity"]
         vector_field = data.get("vector_field", "vector")
         top_k = data.get("top_k", 12)
         # years = data.get("years", None)  # e.g. ["10.2014", "10.2023"] --> possibility of comparing more than two years...

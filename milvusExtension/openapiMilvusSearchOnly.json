@@ -1,0 +1,125 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Milvus Search App",
+    "description": "API for querying and comparing definitions using Milvus and embeddings.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://milvus-server-helvetia.1vclh02s8xqt.eu-de.codeengine.appdomain.cloud",
+      "description": "ibm code engine server"
+    }
+  ],
+  "paths": {
+  
+    "/search": {
+      "post": {
+        "summary": "Query Milvus collection",
+        "description": "Perform a search query on a Milvus collection using embeddings.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "The search query string."
+                  }, 
+                  "product_date": {
+                    "type": "string",
+                    "description": "Date in MM.YYYY format."
+                  }, 
+                  "product_name1": {
+                    "type": "string",
+                    "description": "Name of the product."
+                  }
+                },
+                "required": ["query", "product_date", "product_name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "description": "ID of the result."
+                          },
+                          "score": {
+                            "type": "string",
+                            "description": "Similarity score."
+                          },
+                          "text": {
+                            "type": "string",
+                            "description": "Text of the result."
+                          },
+                          "file_name": {
+                            "type": "string",
+                            "description": "File name of the result."
+                          },
+                          "product_year": {
+                            "type": "string",
+                            "description": "Product year of the result."
+                          },
+                          "product_name": {
+                            "type": "string",
+                            "description": "Product name of the result."
+                          },
+                           "product_month": {
+                            "type": "string",
+                            "description": "Product month of the result."
+                          },
+                           "page_number": {
+                            "type": "string",
+                            "description": "page number of the result."
+                          },
+                          "chapter": {
+                            "type": "string",
+                            "description": "chapter of the result."
+                          },
+                          "company_entity": {
+                            "type": "string",
+                            "description": "company entity of the result."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error occurred.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
