@@ -363,4 +363,4 @@ def compare_definitions_by_year(query, collection, vector_field, output_fields, 
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8080")), debug=True)
