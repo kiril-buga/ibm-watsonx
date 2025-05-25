@@ -250,20 +250,22 @@ def compare_definitions():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/get_summary", methods=["POST"])
+@app.route("/get_summary", methods=["post"])
 def get_summary():
+    """
+    Retrieve all unique product_name values from a Milvus collection.
+    Optional filter by company_entity query parameter.
+    """
     try:
         data = request.json
-        user_query = data["query"]  # Keep for Watsonx, not for Milvus
         collection_name = data["collection_name"]
         product_date = data["product_date"]
         product_name = data["product_name"]
-        top_k = int(data.get("top_k", 10))
+        user_query = data["query"]
+        print(data)
 
-        # Validate required fields
-        for field in ["query", "collection_name", "product_date", "product_name"]:
-            if not data.get(field):
-                return jsonify({"error": f"{field} is required"}), 400
+        if not collection_name:
+            return jsonify({"error": "collection_name is required"}), 400
 
         connections.connect(
             host="102092af-5474-4a42-8dc2-35bb05ffdd0e.cvgfjtof0l91rq0joaj0.lakehouse.appdomain.cloud",
@@ -275,31 +277,32 @@ def get_summary():
         collection = Collection(collection_name)
         collection.load()
 
-        # Build a valid filter expression
-        filter_expr = build_expr(product_date=product_date, product_name=product_name)
+        emb_query = embed(user_query)
 
-        # Use query (NOT search) for exact filter match
-        results = collection.query(
-            expr=filter_expr,
-            output_fields=["text", "product_name", "product_date"],
-            limit=top_k
+        # ── dynamic filter expression ─────────────────────────
+        filter_expr = build_expr(
+            emb_query=emb_query,
+            product_name=product_name,
+            collection_name=collection_name,
+            product_date=product_date,
         )
 
-        result_list = []
-        for doc in results:
-            result_list.append({
-                "product_name": doc.get("product_name"),
-                "product_date": doc.get("product_date"),
-                "text": doc.get("text")
-            })
+        # hits = collection.search(
+        #     data=[emb_query],
+        #     param={"metric_type": "COSINE", "params": {"nprobe": 10}},
+        #     expr=filter_expr,
+        #     # output_fields=output_fields
+        # )[0]
 
-        return jsonify({"results": result_list, "count": len(result_list)}), 200
+        # # build optional filter
+        # expr = f'user_query == "{user_query}"' if user_query else ""
 
-    except KeyError as ke:
-        app.logger.error(f"Missing key in request: {ke}")
-        return jsonify({"error": f"Missing required field: {ke}" }), 400
+        # query product_name only
+        docs = collection.query(expr=filter_expr, limit=16000, output_fields=["texte"])
+        print(f"> json response :{jsonify(docs)}")
+        names = sorted({d.get("product_name") for d in docs if d.get("product_name")})
+        return jsonify({"product_names": names}), 200
     except Exception as e:
-        app.logger.error(f"An error occurred: {e}")
         return jsonify({"error": str(e)}), 500
 
 
