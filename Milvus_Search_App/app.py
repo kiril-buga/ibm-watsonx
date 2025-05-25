@@ -22,6 +22,20 @@ print("✅ Model loaded.")
 
 load_dotenv()
 
+@app.route("/ping", methods=["GET"])
+def ping():
+    embed("warmup")  # silently loads everything into memory
+    return "Warmed up", 200
+
+
+def embed(text):
+    input_text = f"query: {text}"
+    inputs = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True)
+    with torch.no_grad():
+        embeddings = model(**inputs).last_hidden_state[:, 0]
+    return embeddings[0].tolist()
+
+
 @app.route("/hello", methods=["GET"])
 def hello():
     return "Hello, World!", 200
