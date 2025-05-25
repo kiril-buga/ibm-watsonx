@@ -7,12 +7,8 @@
   },
   "servers": [
     {
-      "url": "https://search-server-helvetia.example.com",
+      "url": "https://milvus-server-helvetia.1vclh02s8xqt.eu-de.codeengine.appdomain.cloud",
       "description": "Search server endpoint"
-    },
-    {
-      "url": "https://compare-server-helvetia.example.com",
-      "description": "Comparison server endpoint"
     }
   ],
   "paths": {
@@ -42,7 +38,6 @@
     },
     "/search": {
       "post": {
-        "servers": [ { "url": "https://search-server-helvetia.example.com" } ],
         "summary": "Search in Milvus",
         "description": "Performs a search in Milvus based on the provided query and filters.",
         "requestBody": {
