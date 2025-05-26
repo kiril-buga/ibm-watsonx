@@ -13,7 +13,7 @@ from full_chain import create_full_chain, ask_question
 from vector_store import load_vector_db
 
 
-st.set_page_config(page_title="RepoChat", page_icon="🦜️️🛠️", layout="wide")
+st.set_page_config(page_title="Helvetia", page_icon="🦜️️🛠️", layout="wide")
 
 def show_ui(qa, prompt_to_user="Wie kann ich Ihnen helfen?"):
     # How many messages to show by default
@@ -81,18 +81,19 @@ def display_new_message(qa, prompt):
 
 @st.fragment
 def display_context(message):
-    pass
     # Show sources
-    # with st.expander("Sources", icon='📄', expanded=False):
-    #     for idx, doc in enumerate(message["context"], 1):
-            # print(doc["metadata"])
-            # metadata = doc["metadata"]["dl_meta"]
-            # filename = metadata.get("origin", {}).get("filename", "Unknown")
-            # page_num = metadata.get("doc_items", {})[0].get("prov", {})[0].get("page_no")
-            # headings = metadata.get("headings", "No headings available")
-            # ref_title = f":blue[Reference {idx}: *{filename} - page.{page_num} - headings: {headings}*]"
-            # with st.popover(ref_title):
-            #     st.caption(doc["page_content"])
+    with st.expander("Sources", icon='📄', expanded=False):
+        for idx, doc in enumerate(message["context"], 1):
+            print(doc)
+
+            metadata = doc.get("metadata", {})
+            filename = metadata.get("file_name", "Unknown")
+            page_num = metadata.get("page_number", "Unknown")
+            product_name = metadata.get("product_name", "Unknown Product")
+            headings = metadata.get("chapter", "No headings available")
+            ref_title = f":blue[Reference {idx}: *{filename} - page.{page_num} - Chapter: {headings}*]"
+            with st.popover(ref_title):
+                st.caption(doc["page_content"])
 
 
 @st.cache_resource
@@ -132,34 +133,6 @@ def get_secret_or_input(secret_key, secret_name, info_link=None):
         if info_link:
             st.markdown(f"[Get an {secret_name}]({info_link})")
     return secret_value
-
-
-def show_sidebar():
-    with st.sidebar:
-        # is_clicked = st.button("Clear Chat", on_click=local_storage.reset_chat_history)
-        # if is_clicked:
-        #     st.success("Chat history cleared! Please reload the page to start a new chat.")
-
-        st.header("RepoChat Sources:")
-        # Check if the vector db is loaded
-        is_vector_db_loaded = ("vector_db" in st.session_state and st.session_state.vector_db is not None)
-
-        if "rag_sources" not in st.session_state:
-            vector_db = st.session_state.vector_db
-            st.session_state.rag_sources = []
-            # st.session_state.rag_sources = retrieve_sources_names(vector_db)
-
-        # File upload input for RAG with documents
-        # st.file_uploader(
-        #     "📄 Upload a document",
-        #     type=["pdf", "txt", "docx", "md"],
-        #     accept_multiple_files=True,
-        #     # on_change=load_doc_to_db,
-        #     key="rag_docs",
-        # )
-
-        with st.expander(f"📚 Documents in DB ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
-            st.write([] if not is_vector_db_loaded else [source for source in st.session_state.rag_sources])
 
 
 @st.cache_resource
@@ -209,10 +182,9 @@ def run():
         chain = get_chain(model="meta-llama/llama-4-maverick-17b-128e-instruct-fp8",)  # "llama-3.3-70B"
 
         # Initialize the cookie controller
-        st.subheader("Ask me questions about reports")
+        st.subheader("Ask me questions about Helvetia insurance documents")
         show_ui(chain,
                 "Welche Frage hast du zu den Versicherungsdokumenten bei der Helvetia?")
-        show_sidebar()
     else:
         st.stop()
 

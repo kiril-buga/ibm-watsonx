@@ -99,27 +99,27 @@ def ask_question(chain, query):
     placeholder = st.empty()
 
     # Helps to not exceed the token limit for context window
-    selected_messages = trim_messages(
-        st.session_state.get("messages", []), # chat_history excluding the input message
-        # Please see API reference for trim_messages for other ways to specify a token counter.
-        token_counter=len,  # based on the current model like ChatOpenAI(model="gpt-4o"),
-        max_tokens=10,  # <-- token limit
-        # The start_on is specified
-        # Most chat models expect that chat history starts with either:
-        # (1) a HumanMessage or
-        # (2) a SystemMessage followed by a HumanMessage
-        # start_on="human" makes sure we produce a valid chat history
-        start_on="human",
-        # Usually, we want to keep the SystemMessage
-        # if it's present in the original history.
-        # The SystemMessage has special instructions for the model.
-        include_system=True,
-        strategy="last",
-    )
+    # selected_messages = trim_messages(
+    #     st.session_state.get("messages", []), # chat_history excluding the input message
+    #     # Please see API reference for trim_messages for other ways to specify a token counter.
+    #     token_counter=len,  # based on the current model like ChatOpenAI(model="gpt-4o"),
+    #     max_tokens=10,  # <-- token limit
+    #     # The start_on is specified
+    #     # Most chat models expect that chat history starts with either:
+    #     # (1) a HumanMessage or
+    #     # (2) a SystemMessage followed by a HumanMessage
+    #     # start_on="human" makes sure we produce a valid chat history
+    #     start_on="human",
+    #     # Usually, we want to keep the SystemMessage
+    #     # if it's present in the original history.
+    #     # The SystemMessage has special instructions for the model.
+    #     include_system=True,
+    #     strategy="last",
+    # )
 
     with collect_runs() as cb:
         for token in chain.stream(
-                {"input": query, "chat_history": selected_messages},
+                {"input": query, "chat_history": st.session_state.get("messages", [])},
                 config={"configurable": {"session_id": "any"}, "run_name": "repochat_chain", },
                 # config={"configurable": {"session_id": "foo"}}
         ):
