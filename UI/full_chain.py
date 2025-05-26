@@ -17,6 +17,7 @@ from langchain_core.messages import trim_messages
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tracers.context import collect_runs
 
+
 # from basic_chain import get_model
 # from filter import ensemble_retriever_from_docs
 # from local_loader import load_txt_files
@@ -76,23 +77,37 @@ def make_rag_chain(model, retriever, history_aware_retriever, chat_memory):
     rag_prompt = ChatPromptTemplate.from_messages(
         [
             ("system",
-             """You are a helpful assistant that answers questions about technical documents in any language. 
-             Always respond in the language of the user prompt, ignore the language of the "Context".
-
-             Only use the factual information from the document(s) to answer the question(s). Keep your answers concise and to the point.
-
-             If you do not have have sufficient information to answer a question, politely refuse to answer and say that you don't know.
-             \nRelevant documents are retrieved in the "Context" below.\n"""
-             "Context: {context}"
+             """Du bist ein hilfreicher Assistent, der Fragen **ausschliesslich** mithilfe der
+                im KONTEXT-Block gelieferten Dokumentpassagen beantwortet.
+                Die Antwort soll:
+                - Ausschliesslich auf den bereitgestellten KONTEXT basieren – erfinde oder rate nichts dazu.  
+                - Ist die Antwort vorhanden, zitiere oder paraphrasiere sie und nenne die
+                  Quelle als *(Datei, S. Seite)*.  
+                - Liefern die Passagen nur Teilinformationen, erläutere kurz deine Schlussfolge.  
+                - Kann die Frage mit dem KONTEXT nicht beantwortet werden, antworte exakt:  
+                  „Ich weiss es nicht auf Grundlage der bereitgestellten Dokumente.“  
+                - Wenn sinnvoll, beginne mit einer 1-Satz-Zusammenfassung vor der eigentlichen
+                  Antwort **nur wo es Sinn macht**
+                - **Antworte in derselben Sprache wie die Benutzerfrage.**.
+                
+                **Befolge strikt diese Regeln**
+                
+                ### KONTEXT
+                {context}
+                
+                Datei: {file_name} | Seite: {page_number}
+                Produkt: {product_name} {product_month}.{product_year}
+                Unternehmen: {company_entity} | Kapitel: {chapter}"""
              ),
             ("human", "{input}"),
             ("placeholder", "{chat_history}"),
         ])
 
     qa_chain = create_stuff_documents_chain(model, rag_prompt)
-    rag_chain = create_retrieval_chain(retriever, qa_chain) # create_retrieval_chain(history_aware_retriever, qa_chain)
+    rag_chain = create_retrieval_chain(retriever, qa_chain)  # create_retrieval_chain(history_aware_retriever, qa_chain)
 
     return rag_chain
+
 
 def ask_question(chain, query):
     response = ""
@@ -133,23 +148,6 @@ def ask_question(chain, query):
 
 def main():
     load_dotenv()
-
-    from rich.console import Console
-    from rich.markdown import Markdown
-    console = Console()
-
-    docs = load_txt_files()
-    ensemble_retriever = ensemble_retriever_from_docs(docs)
-    chain = create_full_chain(ensemble_retriever)
-
-    queries = [
-        "Generate a grocery list for my family meal plan for the next week(following 7 days). Prefer local, in-season ingredients."
-        "Create a list of estimated calorie counts and grams of carbohydrates for each meal."
-    ]
-
-    for query in queries:
-        response = ask_question(chain, query)
-        console.print(Markdown(response.content))
 
 
 if __name__ == '__main__':

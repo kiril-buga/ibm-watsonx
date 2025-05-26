@@ -4,6 +4,8 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
+from filters import select_product_name
+
 load_dotenv()
 # from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -178,6 +180,7 @@ def run():
     if ready:
         st.session_state.vector_db = set_vector_db()
         # local_storage.load_chat_history()
+        select_product_name()
 
         chain = get_chain(model="meta-llama/llama-4-maverick-17b-128e-instruct-fp8",)  # "llama-3.3-70B"
 
