@@ -4,7 +4,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-from filters import select_product_name
+from filters import select_product_date, select_product_name
 
 load_dotenv()
 # from langchain_community.chat_message_histories import StreamlitChatMessageHistory
@@ -85,6 +85,9 @@ def display_new_message(qa, prompt):
 def display_context(message):
     # Show sources
     with st.expander("Sources", icon='📄', expanded=False):
+        selected_product = st.session_state.get("product_name")
+        selected_date = st.session_state.get("product_date")
+        print(f"context: {message['context']}")
         for idx, doc in enumerate(message["context"], 1):
             print(doc)
 
@@ -93,19 +96,55 @@ def display_context(message):
             page_num = metadata.get("page_number", "Unknown")
             product_name = metadata.get("product_name", "Unknown Product")
             headings = metadata.get("chapter", "No headings available")
-            ref_title = f":blue[Reference {idx}: *{filename} - page.{page_num} - Chapter: {headings}*]"
+            product_year = metadata.get("product_year", "unknown")
+            product_month = metadata.get("product_month", "unknown")
+            company_entity = metadata.get("company_entity", "unknown")
+            ref_title = f":blue[Reference {idx}: * Product: {product_name} - {filename} - Page.{page_num} - Chapter: {headings} - Date: {product_month}.{product_year} - Company: {company_entity}*]"
             with st.popover(ref_title):
                 st.caption(doc["page_content"])
 
 
-@st.cache_resource
-def get_retriever():
-    # docs = load_pdf_files()
-    # ensemble_retriever_from_docs(docs, embeddings=embeddings)
-    vector_db = st.session_state.vector_db
-    print(f"Vector DB {vector_db.collection_name}")
-    return vector_db.as_retriever(search_type="similarity_score_threshold",
-                                  search_kwargs={"score_threshold": 0.5, "k": 10}, )
+def get_retriever() -> "VectorStoreRetriever":
+    """
+    Build a Milvus retriever that really filters on
+    product_name / product_month / product_year.
+    """
+    vdb = st.session_state.vector_db
+
+    # ---------- 1. Build Milvus boolean expression -----------------
+    parts = []
+    pname = st.session_state.get("product_name")
+    if pname and pname != "All":
+        parts.append(f'product_name == "{pname}"')
+
+    pdate = st.session_state.get("product_date")
+    if pdate and pdate != "All":
+        try:
+            m, y = map(int, pdate.split("."))
+            parts.append(f"product_month == {m}")
+            parts.append(f"product_year == {y}")
+        except ValueError:
+            st.warning("Bad month.year in dropdown – skipping date filter.")
+
+    expr = " && ".join(parts)     # Milvus uses && for AND
+
+    # ---------- 2. Pack search kwargs --------------------------------
+    # include output_fields so metadata is returned from Milvus
+    skw = {
+        "k": 12,
+        "score_threshold": 0.5,
+    }
+    if expr:                      # only add when we have something
+        skw["expr"] = expr
+
+    #st.write(f"Milvus collection: {vdb.collection_name} | search_kwargs: {skw}")
+
+    # ---------- 3. Build retriever -----------------------------------
+    return vdb.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs=skw,
+    )
+
 
 
 def get_chain(model=None, api_key=None, huggingfacehub_api_token=None):
@@ -181,6 +220,7 @@ def run():
         st.session_state.vector_db = set_vector_db()
         # local_storage.load_chat_history()
         select_product_name()
+        select_product_date()
 
         chain = get_chain(model="meta-llama/llama-4-maverick-17b-128e-instruct-fp8",)  # "llama-3.3-70B"
 
@@ -191,4 +231,5 @@ def run():
     else:
         st.stop()
 
+# start the app
 run()

@@ -11,6 +11,7 @@ from ibm_watsonx_ai.metanames import GenTextParamsMetaNames as GenParams
 
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
+from langchain.schema import BaseRetriever, Document
 # from langchain_cerebras import ChatCerebras
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.messages import trim_messages
@@ -74,37 +75,51 @@ def create_full_chain(model, api_key, retriever, huggingfacehub_api_token=None, 
 
 def make_rag_chain(model, retriever, history_aware_retriever, chat_memory):
     # We will use a prompt template from langchain hub.
-    rag_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system",
-             """Du bist ein hilfreicher Assistent, der Fragen **ausschliesslich** mithilfe der
-                im KONTEXT-Block gelieferten Dokumentpassagen beantwortet.
-                Die Antwort soll:
-                - Ausschliesslich auf den bereitgestellten KONTEXT basieren – erfinde oder rate nichts dazu.  
-                - Ist die Antwort vorhanden, zitiere oder paraphrasiere sie und nenne die
-                  Quelle als *(Datei, S. Seite)*.  
-                - Liefern die Passagen nur Teilinformationen, erläutere kurz deine Schlussfolge.  
-                - Kann die Frage mit dem KONTEXT nicht beantwortet werden, antworte exakt:  
-                  „Ich weiss es nicht auf Grundlage der bereitgestellten Dokumente.“  
-                - Wenn sinnvoll, beginne mit einer 1-Satz-Zusammenfassung vor der eigentlichen
-                  Antwort **nur wo es Sinn macht**
-                - **Antworte in derselben Sprache wie die Benutzerfrage.**.
-                
-                **Befolge strikt diese Regeln**
-                
-                ### KONTEXT
-                {context}
-                
-                Datei: {file_name} | Seite: {page_number}
-                Produkt: {product_name} {product_month}.{product_year}
-                Unternehmen: {company_entity} | Kapitel: {chapter}"""
-             ),
-            ("human", "{input}"),
-            ("placeholder", "{chat_history}"),
-        ])
+    # Use only a single {context} variable; metadata is folded into the retrieved snippets
+    rag_prompt = ChatPromptTemplate.from_messages([
+        ("system",
+         """Du bist ein hilfreicher Assistent, der Fragen **ausschliesslich** mithilfe der
+        im KONTEXT-Block gelieferten Dokumentpassagen beantwortet.
+        Die Antwort soll:
+        - Ausschliesslich auf den bereitgestellten KONTEXT basieren – erfinde oder rate nichts dazu.  
+        - Ist die Antwort vorhanden, zitiere oder paraphrasiere sie und nenne die
+          Quelle als *(Datei, S. Seite)*.  
+        - Liefern die Passagen nur Teilinformationen, erläutere kurz deine Schlussfolge.  
+        - Kann die Frage mit dem KONTEXT nicht beantwortet werden, antworte exakt:  
+          „Ich weiss es nicht auf Grundlage der bereitgestellten Dokumente.“  
+        - Wenn sinnvoll, beginne mit einer 1-Satz-Zusammenfassung vor der eigentlichen
+          Antwort **nur wo es Sinn macht**
+        - **Antworte in derselben Sprache wie die Benutzerfrage.**.
+        **Befolge strikt diese Regeln**
+        ### KONTEXT
+        {context}"""),
+        ("human", "{input}"),
+        ("placeholder", "{chat_history}"),
+    ])
 
     qa_chain = create_stuff_documents_chain(model, rag_prompt)
-    rag_chain = create_retrieval_chain(retriever, qa_chain)  # create_retrieval_chain(history_aware_retriever, qa_chain)
+
+    # wrap retriever to prepend metadata into each doc's page_content
+    class MetadataPrependRetriever(BaseRetriever):
+        base_retriever: BaseRetriever
+
+        def get_relevant_documents(self, query):
+            docs = self.base_retriever.get_relevant_documents(query)
+            out = []
+            for d in docs:
+                md = d.metadata or {}
+                header = (
+                    f"Datei: {md.get('file_name', '')} | Seite: {md.get('page_number', '')}"
+                    f" | Produkt: {md.get('product_name', '')} {md.get('product_month', '')}.{md.get('product_year', '')}"
+                    f" | Unternehmen: {md.get('company_entity', '')} | Kapitel: {md.get('chapter', '')}\n"
+                )
+                new_content = header + d.page_content
+                out.append(Document(page_content=new_content, metadata=md))
+            return out
+
+    # instantiate with named field to satisfy pydantic BaseModel
+    wrapped = MetadataPrependRetriever(base_retriever=retriever)
+    rag_chain = create_retrieval_chain(wrapped, qa_chain)
 
     return rag_chain
 
