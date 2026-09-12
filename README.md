@@ -1,10 +1,8 @@
-
-
-https://github.com/user-attachments/assets/d3d19bf6-515c-40cb-b19c-47d07e56230a
-
 # Insurance Policy RAG on IBM watsonx
 
 A retrieval-augmented question-answering system over multilingual insurance policy documents: Docling parses the PDFs, Milvus serves filtered vector search, and a Llama 4 model on watsonx.ai answers in the user's language with a file-and-page citation — or says it doesn't know.
+
+https://github.com/user-attachments/assets/d3d19bf6-515c-40cb-b19c-47d07e56230a
 
 ## Challenge
 
